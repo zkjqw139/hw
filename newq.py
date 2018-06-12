@@ -207,7 +207,7 @@ def main():
                 start_time=time.time()
                 
                 while(True):
-#                    env.render()
+                    env.render()
                     action                    = agent.choose_action_by_epsilon_greedy(_state)
                     next_state,reward,done,_  = env.step(action)
                     position,velocity         = next_state
