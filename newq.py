@@ -39,7 +39,7 @@ class DeepQNetwork(object):
     def __init__(self,  
                  n_actions,  
                  n_features,  
-                 learning_rate=0.0001,  
+                 learning_rate=0.01,  
                  reward_decay=0.9,  
                  epsilon_greedy=0.9,   
                  epsilon_increment = 0.0001,  
@@ -105,7 +105,7 @@ class DeepQNetwork(object):
   
            
   
-    def store_transition(self, s, a, r, s_,done):  
+    def store_transition(self, s, a, r, s_):  
         transition = np.hstack((s, a, r, s_))  
         index = self.buffer_counter % self.buffer_size  
         self.buffer[index, :] = transition  
@@ -129,11 +129,10 @@ class DeepQNetwork(object):
         batch_buffer = self.buffer[sample_index, :]
 
         _, cost = self.sess.run([self.train_op, self.loss], feed_dict={  
-            self.s:    batch_buffer[:, :2],  
-            self.a:    batch_buffer[:, 2],  
-            self.r:    batch_buffer[:, 3],  
-            self.s_:   batch_buffer[:, 3:5],
-            self.done: batch_buffer[:,5]
+            self.s:    batch_buffer[:, :self.n_features],  
+            self.a:    batch_buffer[:, self.n_features],  
+            self.r:    batch_buffer[:, self.n_features+1],  
+            self.s_:   batch_buffer[:, -self.n_features:],
               
         })  
         self.epsilon = min(self.epsilon_max, self.epsilon + self.epsilon_increment)  
@@ -178,13 +177,9 @@ def main():
           
             reward = abs(next_state[0]+0.5)
             
-            bd=-1
-            if done:
-                bd=0
-            else :
-                bd=1
+        
             
-            agent.store_transition(state,action,reward,next_state,bd)
+            agent.store_transition(state,action,reward,next_state)
 #            print(reward,next_state[0]-state[0])
             if total_step > 200:  
                 cost_ = agent.learn() 
@@ -207,13 +202,13 @@ def main():
             total_step = total_step+1
         if episode%100==0 and episode>10:
             for test_steps in range(10):
-                state= env.reset()
+                _state= env.reset()
                 t_reward=0
                 start_time=time.time()
                 
                 while(True):
 #                    env.render()
-                    action                    = agent.choose_action_by_epsilon_greedy(state)
+                    action                    = agent.choose_action_by_epsilon_greedy(_state)
                     next_state,reward,done,_  = env.step(action)
                     position,velocity         = next_state
                     
@@ -223,7 +218,7 @@ def main():
                         print('episode:', test_steps,'out of time')
                         break
                     
-                    state=next_state
+                    _state=next_state
                     if done:
                           print('episode:', test_steps,  
                                ' episode_reward %.2f' % t_reward,  
